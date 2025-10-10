@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+watchdog
+pdfplumber
+pydantic>=2
+SQLAlchemy>=2
+pymysql
+python-dotenv
+python-multipart
+pytesseract
+pillow
+pymupdf
