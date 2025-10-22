@@ -23,3 +23,8 @@ export async function patchInvoice(id: number, payload: Partial<Invoice>) {
   const res = await api.patch<Invoice>(`/invoices/${id}`, payload);
   return res.data;
 }
+
+export async function deleteInvoice(id: number): Promise<void> {
+  await api.delete(`/invoices/${id}`);
+}
+

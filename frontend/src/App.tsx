@@ -1,7 +1,7 @@
 // frontend/src/App.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "./lib/api";
-import { fetchInvoices, patchInvoice, type Invoice } from "./lib/invoices";
+import { fetchInvoices, patchInvoice, deleteInvoice, type Invoice } from "./lib/invoices";
 import EditModal from "./components/EditModal";
 
 export default function App() {
@@ -13,10 +13,9 @@ export default function App() {
   const [editing, setEditing] = useState<Invoice | null>(null);
   const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
 
-  // Hilfsfunktion: richtige Files-URL (Proxy /api ODER VITE_API_URL)
+  // Files-URL: VITE_API_URL oder via Proxy /api
   const filesUrl = useCallback((path: string) => {
     const base = (import.meta.env.VITE_API_URL as string | undefined) || "";
-    // Wenn VITE_API_URL nicht gesetzt ist → Proxy unter /api nutzen
     return base ? `${base}${path}` : `/api${path}`;
   }, []);
 
@@ -42,14 +41,11 @@ export default function App() {
       const fd = new FormData();
       fd.append("file", file);
 
-      // Wichtig: KEIN manueller Content-Type setzen (Browser macht boundary)
-      const res = await api.post("/upload", fd);
+      const res = await api.post("/upload", fd); // KEIN Content-Type manuell
       console.log("Upload response:", res.data);
-
       setMsg("Upload erfolgreich");
       setFile(null);
 
-      // direkt neu laden + kleiner Fallback-Tick
       await load();
       setTimeout(() => load(), 300);
     } catch (err) {
@@ -64,6 +60,21 @@ export default function App() {
     if (!editing) return;
     await patchInvoice(editing.id, payload);
     await load();
+  };
+
+  const onDelete = async (id: number) => {
+    if (!confirm("Möchtest du diese Rechnung wirklich löschen?")) return;
+    try {
+      setLoading(true);
+      await deleteInvoice(id);
+      setMsg("Rechnung gelöscht");
+      await load();
+    } catch (err) {
+      console.error("Löschen fehlgeschlagen", err);
+      setMsg("Fehler beim Löschen");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const lastUpdatedLabel = useMemo(() => {
@@ -129,7 +140,7 @@ export default function App() {
                 <th>Confidence</th>
                 <th>Status</th>
                 <th>Dokument</th>
-                <th></th>
+                <th>Aktionen</th>
               </tr>
             </thead>
             <tbody>
@@ -164,12 +175,20 @@ export default function App() {
                     )}
                   </td>
                   <td>
-                    <button
-                      className="btn-secondary"
-                      onClick={() => setEditing(inv)}
-                    >
-                      Bearbeiten
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        className="btn-secondary"
+                        onClick={() => setEditing(inv)}
+                      >
+                        Bearbeiten
+                      </button>
+                      <button
+                        className="btn-danger"
+                        onClick={() => onDelete(inv.id)}
+                      >
+                        Löschen
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
