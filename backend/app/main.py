@@ -192,3 +192,24 @@ def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
     db.delete(inv)
     db.commit()
     return None
+
+class InvoiceItemOut(BaseModel):
+    id: int
+    invoice_id: int
+    line_index: int | None = None
+    description: str | None = None
+    quantity: float | None = None
+    unit: str | None = None
+    unit_price: float | None = None
+    vat_rate: float | None = None
+    vat_amount: float | None = None
+    line_total: float | None = None
+    class Config: from_attributes = True
+
+@app.get("/invoices/{invoice_id}/items", response_model=List[InvoiceItemOut])
+def list_items(invoice_id: int, db: Session = Depends(get_db)):
+    inv = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    if not inv:
+        raise HTTPException(status_code=404, detail="Not found")
+    return inv.items  # relationship
+

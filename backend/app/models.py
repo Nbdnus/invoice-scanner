@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String, Date, DateTime, Numeric, Text, ForeignKey, func
 from sqlalchemy.orm import relationship
 from .db import Base
-
+from sqlalchemy import Column, Integer, Float, String, ForeignKey
+from sqlalchemy.orm import relationship
 class Invoice(Base):
     __tablename__ = "invoices"
 
@@ -27,3 +28,17 @@ class InvoiceRawText(Base):
     raw_text = Column(Text, nullable=False)
 
     invoice = relationship("Invoice", back_populates="raw_text")
+class InvoiceItem(Base):
+    __tablename__ = "invoice_items"
+    id = Column(Integer, primary_key=True)
+    invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="CASCADE"), index=True, nullable=False)
+    line_index = Column(Integer, nullable=True)
+    description = Column(String(1024), nullable=True)
+    quantity = Column(Float, nullable=True)
+    unit = Column(String(64), nullable=True)
+    unit_price = Column(Float, nullable=True)
+    vat_rate = Column(Float, nullable=True)       # z.B. 19.0
+    vat_amount = Column(Float, nullable=True)
+    line_total = Column(Float, nullable=True)
+
+    invoice = relationship("Invoice", backref="items")

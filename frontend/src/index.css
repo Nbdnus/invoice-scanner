@@ -1,78 +1,86 @@
 @import "tailwindcss";
 
-.input { @apply w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring focus:ring-blue-100; }
-.btn-primary { @apply rounded-xl bg-blue-600 px-4 py-2 text-white hover:bg-blue-700; }
-.btn-secondary { @apply rounded-xl bg-slate-200 px-3 py-1.5 text-slate-800 hover:bg-slate-300; }
-.btn-danger { @apply rounded-xl bg-red-500 px-3 py-1.5 text-white hover:bg-red-600; }
-.badge-ok { @apply text-xs px-2 py-1 rounded-full bg-green-100 text-green-800; }
-.badge-review { @apply text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800; }
+/* -------------------------------------- */
+/* Eigenes Design-System auf Basis von Tailwind */
+/* -------------------------------------- */
+@layer components {
+  .input { 
+    @apply w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring focus:ring-blue-100;
+  }
 
+  /* Buttons — direkt mit Tailwind-Utilities statt @apply anderer Klassen */
+  .btn-primary { 
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 transition bg-blue-600 text-white hover:bg-blue-700;
+  }
+
+  .btn-secondary { 
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 transition bg-slate-200 text-slate-800 hover:bg-slate-300;
+  }
+
+  .btn-danger { 
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 transition bg-red-500 text-white hover:bg-red-600;
+  }
+
+  /* Badges */
+  .badge-ok { 
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-green-100 text-green-800;
+  }
+
+  .badge-review { 
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800;
+  }
+
+  /* Karten & Layout */
+  .card { 
+    @apply rounded-2xl bg-white shadow p-4; 
+  }
+
+  .skeleton { 
+    @apply animate-pulse rounded bg-slate-200; 
+  }
+
+  /* Drawer */
+  .drawer { 
+    @apply fixed top-0 right-0 h-full w-full max-w-2xl bg-white shadow-2xl transition-transform duration-300;
+  }
+
+  .drawer-backdrop { 
+    @apply fixed inset-0 bg-black/40;
+  }
+
+  /* Tabellenzeilen Hover */
+  .tr-hover { 
+    @apply hover:bg-slate-50 transition-colors;
+  }
+}
+
+/* Basis Reset & Fonts */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
+  color: #213547;
+  background-color: #ffffff;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #f8fafc;
+  color: #111827;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+a {
   font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  color: #2563eb;
+  text-decoration: inherit;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-
+a:hover {
+  color: #1e40af;
 }
