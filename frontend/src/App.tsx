@@ -49,9 +49,10 @@ export default function App() {
       setToast({kind:"success", text:"Upload erfolgreich"});
       setFile(null);
       await load();
-      setTimeout(() => load(), 300);
+      // kurze Refresh-Schleife, falls DB-Commit minimal verzögert sichtbar wird
+      setTimeout(() => { load(); }, 300);
     } catch (err) {
-      console.error("Upload failed", err);
+      console.error("Upload fehlgeschlagen", err);
       setToast({kind:"error", text:"Upload fehlgeschlagen"});
     } finally {
       setLoading(false);
@@ -80,50 +81,50 @@ export default function App() {
     }
   };
 
-const filtered = useMemo(() => {
-  const term = q.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
 
-  const passSearch = (inv: Invoice) =>
-    (inv.supplier_name ?? "").toLowerCase().includes(term) ||
-    (inv.invoice_number ?? "").toLowerCase().includes(term) ||
-    String(inv.id).includes(term);
+    const passSearch = (inv: Invoice) =>
+      (inv.supplier_name ?? "").toLowerCase().includes(term) ||
+      (inv.invoice_number ?? "").toLowerCase().includes(term) ||
+      String(inv.id).includes(term);
 
-  const list = term ? invoices.filter(passSearch) : invoices;
+    const list = term ? invoices.filter(passSearch) : invoices;
 
-  // Mappe SortKey → Werttyp
-  const getKeyValue = (inv: Invoice, key: SortKey): string | number | null => {
-    switch (key) {
-      case "id": return inv.id;
-      case "supplier_name": return inv.supplier_name ?? null;
-      case "invoice_date": return inv.invoice_date ?? null;
-      case "total_amount": return inv.total_amount ?? null;
-      case "extraction_confidence": return inv.extraction_confidence ?? null;
-    }
-  };
+    // Mappe SortKey → Werttyp
+    const getKeyValue = (inv: Invoice, key: SortKey): string | number | null => {
+      switch (key) {
+        case "id": return inv.id;
+        case "supplier_name": return inv.supplier_name ?? null;
+        case "invoice_date": return inv.invoice_date ?? null;
+        case "total_amount": return inv.total_amount ?? null;
+        case "extraction_confidence": return inv.extraction_confidence ?? null;
+      }
+    };
 
-  const compare = (a: Invoice, b: Invoice): number => {
-    const va = getKeyValue(a, sortBy);
-    const vb = getKeyValue(b, sortBy);
+    const compare = (a: Invoice, b: Invoice): number => {
+      const va = getKeyValue(a, sortBy);
+      const vb = getKeyValue(b, sortBy);
 
-    // Nulls nach hinten
-    if (va == null && vb == null) return 0;
-    if (va == null) return 1;
-    if (vb == null) return -1;
+      // Nulls nach hinten
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
 
-    // Zahl vs. String getrennt vergleichen
-    const dir = sortDir === "asc" ? 1 : -1;
-    if (typeof va === "number" && typeof vb === "number") {
-      return va < vb ? -1 * dir : va > vb ? 1 * dir : 0;
-    }
-    const sa = String(va).toLowerCase();
-    const sb = String(vb).toLowerCase();
-    if (sa < sb) return -1 * dir;
-    if (sa > sb) return 1 * dir;
-    return 0;
-  };
+      // Zahl vs. String getrennt vergleichen
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (typeof va === "number" && typeof vb === "number") {
+        return va < vb ? -1 * dir : va > vb ? 1 * dir : 0;
+      }
+      const sa = String(va).toLowerCase();
+      const sb = String(vb).toLowerCase();
+      if (sa < sb) return -1 * dir;
+      if (sa > sb) return 1 * dir;
+      return 0;
+    };
 
-  return [...list].sort(compare);
-}, [invoices, q, sortBy, sortDir]);
+    return [...list].sort(compare);
+  }, [invoices, q, sortBy, sortDir]);
 
   const stats = useMemo(() => {
     const total = invoices.length;
@@ -136,8 +137,7 @@ const filtered = useMemo(() => {
 
   const lastUpdatedLabel = useMemo(() => {
     if (!lastLoadedAt) return "";
-    const d = lastLoadedAt;
-    return d.toLocaleTimeString();
+    return lastLoadedAt.toLocaleTimeString();
   }, [lastLoadedAt]);
 
   const headerBtn = (key: SortKey, label: string) => (
@@ -252,7 +252,6 @@ const filtered = useMemo(() => {
                     </td>
                   </tr>
                 ))}
-                {/* Skeleton (kurz sichtbar beim Laden) */}
                 {loading && (
                   <tr>
                     <td colSpan={10} className="py-3">
@@ -277,8 +276,10 @@ const filtered = useMemo(() => {
         open={!!previewOf}
         title={previewOf ? `Rechnung #${previewOf.id}` : "Vorschau"}
         pdfUrl={previewOf?.source_file ? filesUrl(`/files/${previewOf.source_file}`) : null}
+        invoiceId={previewOf?.id ?? null}
         onClose={()=>setPreviewOf(null)}
       />
+
 
       {toast && <Toast kind={toast.kind} message={toast.text} onClose={()=>setToast(null)} />}
     </div>

@@ -3,15 +3,12 @@ import uuid
 import logging
 from typing import List, Optional
 
-from fastapi import (
-    FastAPI, UploadFile, File, Depends, HTTPException,
-    Query, Path, Body, status
-)
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Query, Path, Body, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from dotenv import load_dotenv
+from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import Session
 
 from .db import Base, engine, get_db
 from .models import Invoice, InvoiceRawText, InvoiceItem
@@ -49,6 +46,7 @@ Base.metadata.create_all(bind=engine)
 
 # -------- Schemas --------
 class InvoiceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     supplier_name: Optional[str] = None
     invoice_number: Optional[str] = None
@@ -58,7 +56,6 @@ class InvoiceOut(BaseModel):
     extraction_confidence: Optional[float] = None
     needs_review: Optional[int] = None
     source_file: Optional[str] = None
-    class Config: from_attributes = True
 
 class InvoiceUpdate(BaseModel):
     supplier_name: Optional[str] = None
@@ -69,6 +66,7 @@ class InvoiceUpdate(BaseModel):
     needs_review: Optional[int] = None
 
 class InvoiceItemOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     invoice_id: int
     line_index: Optional[int] = None
@@ -79,7 +77,6 @@ class InvoiceItemOut(BaseModel):
     vat_rate: Optional[float] = None
     vat_amount: Optional[float] = None
     line_total: Optional[float] = None
-    class Config: from_attributes = True
 
 # -------- Health --------
 @app.get("/")
@@ -177,17 +174,17 @@ def upload_invoice(file: UploadFile = File(...), db: Session = Depends(get_db)):
 
     # 3) Positionen (OCR-Heuristik)
     try:
-      item_rows = extract_items_from_pdf(out_path)
-      kept = 0
-      for row in item_rows:
-          # simple Plausibilitätsfilter: mind. Beschreibung ODER (unit_price/line_total)
-          if not any([row.get("description"), row.get("unit_price"), row.get("line_total")]):
-              continue
-          db.add(InvoiceItem(invoice_id=inv.id, **row))
-          kept += 1
-      log.info(f"Items extracted: {kept}")
+        item_rows = extract_items_from_pdf(out_path)
+        kept = 0
+        for row in item_rows:
+            # simple Plausibilitätsfilter: mind. Beschreibung ODER (unit_price/line_total)
+            if not any([row.get("description"), row.get("unit_price"), row.get("line_total")]):
+                continue
+            db.add(InvoiceItem(invoice_id=inv.id, **row))
+            kept += 1
+        log.info(f"Items extracted: {kept}")
     except Exception as exc:
-      log.warning(f"Item extraction failed: {exc}")
+        log.warning(f"Item extraction failed: {exc}")
 
     db.commit()
     db.refresh(inv)

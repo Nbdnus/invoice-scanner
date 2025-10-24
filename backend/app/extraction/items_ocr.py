@@ -1,12 +1,3 @@
-"""
-Robuste Positions-Extraktion für GESCANNTE PDFs (OCR), v3:
-
-- Höherer Render-Zoom (3.0) für klareres OCR.
-- Header-Erkennung (Menge/Einzelpreis/Gesamt...), aber Fallback ohne Header:
-  Wenn kein Kopf gefunden wird, werden alle Zeilen mit >=2 Zahlen klassifiziert.
-- Rauschen (Adresse/IBAN/USt) wird gefiltert.
-"""
-
 from __future__ import annotations
 import os
 import re
@@ -15,12 +6,6 @@ from typing import List, Dict, Any, Optional
 import fitz  # PyMuPDF
 from PIL import Image
 import pytesseract
-
-
-def _set_tesseract_cmd_from_env():
-    cmd = os.getenv("TESSERACT_CMD")
-    if cmd and os.path.exists(cmd):
-        pytesseract.pytesseract.tesseract_cmd = cmd
 
 # --- Regex/Heuristiken ---
 NUM_RE = re.compile(r"-?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d+)?")
@@ -39,6 +24,12 @@ NOISE_TOKENS = {
     "tel", "telefon", "fax", "mail", "straße", "str.", "road", "gmbh",
     "rechnung", "invoice", "kundennummer", "kunden-nr", "bestellnr", "bestell-nr",
 }
+
+
+def _set_tesseract_cmd_from_env():
+    cmd = os.getenv("TESSERACT_CMD")
+    if cmd and os.path.exists(cmd):
+        pytesseract.pytesseract.tesseract_cmd = cmd
 
 
 def _normalize_number(s: str) -> Optional[float]:
@@ -100,13 +91,17 @@ def _cluster_rows(words: List[Dict[str, Any]], y_tol: int = 7) -> List[List[Dict
     last_cy = None
     for w in words:
         if last_cy is None:
-            current = [w]; last_cy = w["cy"]; continue
+            current = [w]
+            last_cy = w["cy"]
+            continue
         if abs(w["cy"] - last_cy) <= y_tol:
-            current.append(w); last_cy = (last_cy + w["cy"]) / 2.0
+            current.append(w)
+            last_cy = (last_cy + w["cy"]) / 2.0
         else:
             if current:
                 rows.append(sorted(current, key=lambda t: t["x"]))
-            current = [w]; last_cy = w["cy"]
+            current = [w]
+            last_cy = w["cy"]
     if current:
         rows.append(sorted(current, key=lambda t: t["x"]))
     return rows
@@ -126,6 +121,7 @@ def _is_noise_row(row: List[Dict[str, Any]]) -> bool:
 def _classify_line(row: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not row:
         return {}
+
     tokens = []
     for t in row:
         raw = t["text"]
@@ -136,6 +132,7 @@ def _classify_line(row: List[Dict[str, Any]]) -> Dict[str, Any]:
             "is_num": (val is not None) and (not PCT_RE.search(raw)),
             "has_curr": bool(CURR_RE.search(raw)),
         })
+
     nums = [k for k in tokens if k["is_num"]]
     if len(nums) < 2:
         return {}
@@ -149,6 +146,7 @@ def _classify_line(row: List[Dict[str, Any]]) -> Dict[str, Any]:
     line_total = line_total_token["val"]
 
     left_nums = [n for n in nums if n["x"] < line_total_token["x"] and n["val"] and n["val"] > 0]
+
     unit_price = None
     if left_nums:
         plausible = [n for n in left_nums if n["val"] <= line_total] or left_nums
@@ -161,7 +159,8 @@ def _classify_line(row: List[Dict[str, Any]]) -> Dict[str, Any]:
         for c in qty_candidates:
             v = c["val"]
             if v is not None and 0 < v <= 10000:
-                quantity = v; break
+                quantity = v
+                break
 
     # Beschreibung: Text links von total, der nicht reine Zahl ist
     right_border = line_total_token["x"]
@@ -190,7 +189,7 @@ def _classify_line(row: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 def _extract_rows(rows: List[List[Dict[str, Any]]], require_header: bool) -> List[Dict[str, Any]]:
     items: List[Dict[str, Any]] = []
-    started = not require_header  # wenn Header nicht nötig, starten wir sofort
+    started = not require_header
     for row in rows:
         if _is_noise_row(row):
             continue
@@ -207,6 +206,12 @@ def _extract_rows(rows: List[List[Dict[str, Any]]], require_header: bool) -> Lis
 
 
 def extract_items_from_pdf(path: str) -> List[Dict[str, Any]]:
+    """
+    Robuste Positions-Extraktion für GESCANNTE PDFs (OCR), v3:
+    - Höherer Render-Zoom (3.0) für klareres OCR.
+    - Header-Erkennung (Menge/Einzelpreis/Gesamt...), aber Fallback ohne Header.
+    - Rauschen (Adresse/IBAN/USt) wird gefiltert.
+    """
     _set_tesseract_cmd_from_env()
     all_items: List[Dict[str, Any]] = []
 
